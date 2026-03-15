@@ -436,6 +436,7 @@ async def on_member_join(member):
 # Place these in your Events section
 @bot.event
 async def on_message_delete(message):
+    
     # GHOST PING CHANNEL ID (Replace with your private mod channel ID)
     GHOST_PING_LOG_ID = 1464667139414950040
     
@@ -495,7 +496,16 @@ async def on_message(message):
     if message.author == bot.user or message.guild is None:
         await bot.process_commands(message)
         return
-        
+
+    # 2. THE FILTER (Add this part!)
+    content_lower = message.content.lower()
+    if restricted_words: # Only check if the list isn't empty
+        for word in restricted_words:
+            if word in content_lower:
+                await message.delete()
+                await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed here!", delete_after=5)
+                return # Stop processing so it doesn't count as a message or trigger other commands
+                
     # --- HIGHLIGHT CHECKER ---
     # We don't want to ping the person who actually wrote the message
     content = message.content.lower()
