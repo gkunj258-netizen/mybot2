@@ -96,10 +96,10 @@ HIGHLIGHTS_FILE = 'highlights.json'
 # Load existing data into memory
 highlights = load_data(HIGHLIGHTS_FILE)
 restricted_words = load_data('restricted_words.json',default=[])
-if restricted_words == []:
-# Dictionary to store active Gemini chat sessions
-user_chats = {}
+if restricted_words is None:
+    restricted_words = []
 
+user_chats = {}
 HIGHLIGHTS_FILE = 'highlights.json'
 
 def load_highlights():
