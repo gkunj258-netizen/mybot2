@@ -99,6 +99,9 @@ restricted_words = load_data('restricted_words.json',default=[])
 if restricted_words is None:
     restricted_words = []
 
+reputation = load_data('reputation.json')
+rep_cooldowns = {}
+
 user_chats = {}
 HIGHLIGHTS_FILE = 'highlights.json'
 
@@ -618,6 +621,40 @@ async def on_message(message):
 # 📢 REMINDER COMMANDS
 # --------------------------------------------------------
 
+    @bot.command()
+async def rep(ctx, member: discord.Member):
+    """Give a reputation point to a helpful user."""
+    if member.id == ctx.author.id:
+        return await ctx.send("You can't give yourself reputation! 💀")
+    
+    now = datetime.now()
+    if ctx.author.id in rep_cooldowns:
+        if now < rep_cooldowns[ctx.author.id] + timedelta(hours=1):
+            return await ctx.send("⏳ You can only give rep once per hour!")
+
+    mid = str(member.id)
+    reputation[mid] = reputation.get(mid, 0) + 1
+    rep_cooldowns[ctx.author.id] = now
+    save_data(reputation, 'reputation.json')
+    await ctx.send(f"⭐ {ctx.author.mention} gave a rep point to {member.mention}! (Total: {reputation[mid]})")
+
+@bot.command()
+async def profile(ctx, member: discord.Member = None):
+    """View server profile, reputation, and message count."""
+    member = member or ctx.author
+    mid = str(member.id)
+    gid = str(ctx.guild.id)
+    
+    # Getting counts from your existing message_counts logic
+    msgs = message_counts.get(gid, {}).get(mid, 0)
+    reps = reputation.get(mid, 0)
+
+    embed = discord.Embed(title=f"User Profile: {member.name}", color=member.color)
+    embed.add_field(name="💬 Messages", value=f"`{msgs}`", inline=True)
+    embed.add_field(name="⭐ Reputation", value=f"`{reps}`", inline=True)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+    
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def restrict(ctx, word: str):
