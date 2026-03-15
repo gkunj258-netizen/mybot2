@@ -100,8 +100,12 @@ if restricted_words is None:
     restricted_words = []
 
 reputation = load_data('reputation.json')
-rep_cooldowns = {}
-
+if reputation is None:
+    reputation = {}
+message_counts = load_data('messages.json')
+if message_counts is None:
+    message_counts = {}
+    
 user_chats = {}
 HIGHLIGHTS_FILE = 'highlights.json'
 
@@ -623,7 +627,10 @@ async def on_message(message):
 
 @bot.command()
 async def rep(ctx, member: discord.Member):
-    """Give a reputation point to a helpful user."""
+    
+    global reputation 
+    if reputation is None:reputation = {}
+        """Give a reputation point to a helpful user."""
     if member.id == ctx.author.id:
         return await ctx.send("You can't give yourself reputation! 💀")
     
@@ -641,6 +648,10 @@ async def rep(ctx, member: discord.Member):
 
 @bot.command()
 async def profile(ctx, member: discord.Member = None):
+    global reputation,message_counts
+    if reputation is None:reputation = {}
+    if message_counts is None:message_counts = {}
+        
     """View server profile, reputation, and message count."""
     member = member or ctx.author
     mid = str(member.id)
