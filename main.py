@@ -621,7 +621,7 @@ async def on_message(message):
 # 📢 REMINDER COMMANDS
 # --------------------------------------------------------
 
-    @bot.command()
+@bot.command()
 async def rep(ctx, member: discord.Member):
     """Give a reputation point to a helpful user."""
     if member.id == ctx.author.id:
