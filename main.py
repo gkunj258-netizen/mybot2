@@ -622,7 +622,7 @@ async def on_message(message):
 # --------------------------------------------------------
 
     @bot.command()
-async def rep(ctx, member: discord.Member):
+    async def rep(ctx, member: discord.Member):
     """Give a reputation point to a helpful user."""
     if member.id == ctx.author.id:
         return await ctx.send("You can't give yourself reputation! 💀")
