@@ -611,15 +611,18 @@ async def on_message(message):
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def restrict(ctx, word: str):
-    """Blacklist a word globally across the server."""
+    global restricted_words
+    if restricted_words is None:
+        restricted_words = []
+        
     word = word.lower()
     if word not in restricted_words:
         restricted_words.append(word)
         save_data(restricted_words, 'restricted_words.json')
-        await ctx.send(f"🚫 The word *'{word}'* is now restricted globally.")
+        await ctx.send(f"🚫 Restricted: **{word}**")
     else:
-        await ctx.send("That word is already restricted.")
-
+        await ctx.send("Word is already restricted.")
+        
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def unrestrict(ctx, word: str):
