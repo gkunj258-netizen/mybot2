@@ -404,41 +404,92 @@ async def weekly_leaderboard_announcement_error(error):
 # 🤖 BOT EVENTS
 # --------------------------------------------------------
 
-# --- 1. THE CLASS (Place this first) ---
 class RolePicker(ui.View):
     def __init__(self):
-        super().__init__(timeout=None) # This makes the buttons last forever
+        super().__init__(timeout=None)
 
-    @ui.button(label="Male", style=ButtonStyle.blurple, custom_id="role_male")
-    async def male(self, interaction: Interaction, button: ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name="Male")
+    # --- ROW 1: GENDER & AGE ---
+    @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple, custom_id="role_male")
+    async def male(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Male")
+
+    @ui.button(label="Female", emoji="👧", style=discord.ButtonStyle.danger, custom_id="role_female")
+    async def female(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Female")
+
+    @ui.button(label="18-", emoji="🍼", style=discord.ButtonStyle.secondary, custom_id="role_u18")
+    async def u18(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "18-")
+
+    @ui.button(label="18+", emoji="🔞", style=discord.ButtonStyle.secondary, custom_id="role_18plus")
+    async def plus18(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "18+")
+
+    # --- ROW 2: CORE GAMES ---
+    @ui.button(label="Roblox", emoji="🧱", style=discord.ButtonStyle.success, custom_id="role_roblox")
+    async def roblox(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Roblox")
+
+    @ui.button(label="Minecraft", emoji="🌲", style=discord.ButtonStyle.success, custom_id="role_mc")
+    async def minecraft(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Minecraft")
+
+    @ui.button(label="Valorant", emoji="🎯", style=discord.ButtonStyle.danger, custom_id="role_val")
+    async def valorant(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Valorant")
+
+    @ui.button(label="BGMI", emoji="🪂", style=discord.ButtonStyle.blurple, custom_id="role_bgmi")
+    async def bgmi(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "BGMI")
+
+    # --- ROW 3: NEW GAMES ---
+    @ui.button(label="CS2", emoji="💣", style=discord.ButtonStyle.secondary, custom_id="role_cs2")
+    async def cs2(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "CS2")
+
+    @ui.button(label="GTA", emoji="🚗", style=discord.ButtonStyle.success, custom_id="role_gta")
+    async def gta(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "GTA")
+
+    @ui.button(label="Fortnite", emoji="💃", style=discord.ButtonStyle.blurple, custom_id="role_fortnite")
+    async def fortnite(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Fortnite")
+
+    @ui.button(label="COD", emoji="🎖️", style=discord.ButtonStyle.danger, custom_id="role_cod")
+    async def cod(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Call Of Duty")
+
+    @ui.button(label="MLBB", emoji="⚔️", style=discord.ButtonStyle.success, custom_id="role_ml")
+    async def ml(self, interaction: discord.Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Mobile Legends")
+
+    # --- SHARED LOGIC ---
+    async def toggle_role(self, interaction: discord.Interaction, role_name: str):
+        role = discord.utils.get(interaction.guild.roles, name=role_name)
+        if not role:
+            return await interaction.response.send_message(f"❌ Role '{role_name}' not found!", ephemeral=True)
+        
         if role in interaction.user.roles:
             await interaction.user.remove_roles(role)
-            await interaction.response.send_message("Removed 'Male' role.", ephemeral=True)
+            await interaction.response.send_message(f"Removed **{role_name}**.", ephemeral=True)
         else:
             await interaction.user.add_roles(role)
-            await interaction.response.send_message("Added 'Male' role!", ephemeral=True)
+            await interaction.response.send_message(f"Added **{role_name}**!", ephemeral=True)
 
-    @ui.button(label="Female", style=ButtonStyle.danger, custom_id="role_female")
-    async def female(self, interaction: Interaction, button: ui.Button):
-        role = discord.utils.get(interaction.guild.roles, name="Female")
-        if role in interaction.user.roles:
-            await interaction.user.remove_roles(role)
-            await interaction.response.send_message("Removed 'Female' role.", ephemeral=True)
-        else:
-            await interaction.user.add_roles(role)
-            await interaction.response.send_message("Added 'Female' role!", ephemeral=True)
-
-# --- 2. THE COMMAND (Place this right after the class) ---
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def setup_roles(ctx):
-    """Admin only: Sends the menu for users to pick roles."""
     embed = discord.Embed(
-        title="Select Your Gender Role", 
-        description="Click the buttons below to toggle your roles.", 
-        color=discord.Color.purple()
+        title="✨ Professional Role Menu",
+        description=(
+            "**Click the buttons below to select your roles!**\n\n"
+            "👫 **Gender:** Male, Female\n"
+            "🎂 **Age:** 18-, 18+\n"
+            "🎮 **Games:** Roblox, Minecraft, Valorant, BGMI, CS2, GTA, Fortnite, COD, Mobile Legends"
+        ),
+        color=0x5865F2 # Blurple color
     )
+    embed.set_footer(text="Manage your roles instantly by clicking.")
     await ctx.send(embed=embed, view=RolePicker())
     
 @bot.event
