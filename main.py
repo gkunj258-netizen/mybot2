@@ -727,7 +727,8 @@ async def addemoji(ctx, name: str, url: str):
             img = await resp.read()
             img = Image.open(io.BytesIO(img_data))
             if img.format == 'GIF':
-                else:
+               pass
+            else:
                     img = img.resize((128,128))
                     byte_arr = io.BytesIO()
                     img.save(byte_arr,format='PNG')
