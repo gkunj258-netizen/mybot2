@@ -737,7 +737,7 @@ async def addemoji(ctx, name: str, url: str):
             emoji = await ctx.guild.create_custom_emoji(name=name, image=img)
             await ctx.send(f"✅ Created emoji: {emoji}")
             except Exception as e:
-                await ctx.send(f"❌ Error: {e}")
+              await ctx.send(f"❌ Error: {e}")
 
 @bot.command()
 @commands.has_permissions(manage_expressions=True)
@@ -794,7 +794,21 @@ async def profile(ctx, member: discord.Member = None):
     embed.add_field(name="⭐ Reputation", value=f"`{reps}`", inline=True)
     embed.set_thumbnail(url=member.display_avatar.url)
     await ctx.send(embed=embed)
-    
+
+@bot.command()
+@commands.has_permissions(manage_expressions=True)
+async def steal(ctx, emoji: discord.PartialEmoji):
+    """Steal an emoji from another server just by mentioning it!"""
+    try:
+        # Download the emoji data
+        img_data = await emoji.read()
+        
+        # Create it in your server
+        new_emoji = await ctx.guild.create_custom_emoji(name=emoji.name, image=img_data)
+        await ctx.send(f"✅ Successfully stolen! {new_emoji}")
+    except Exception as e:
+        await ctx.send(f"❌ Couldn't steal that: {e}")
+
 @bot.command()
 @commands.has_permissions(manage_guild=True)
 async def restrict(ctx, word: str):
