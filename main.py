@@ -716,6 +716,32 @@ async def on_message(message):
 # --------------------------------------------------------
 
 @bot.command()
+@commands.has_permissions(manage_expressions=True)
+async def addemoji(ctx, name: str, url: str):
+    """Add an emoji to the server from a URL."""
+    try:
+        async with bot.http_session.get(url) as resp:
+            if resp.status != 200: return await ctx.send("Could not download the image.")
+            img = await resp.read()
+        emoji = await ctx.guild.create_custom_emoji(name=name, image=img)
+        await ctx.send(f"✅ Created emoji: {emoji}")
+    except Exception as e: await ctx.send(f"❌ Error: {e}")
+
+@bot.command()
+@commands.has_permissions(manage_expressions=True)
+async def addsticker(ctx, name: str, emoji: str, url: str):
+    """Add a sticker to the server from a URL."""
+    try:
+        async with bot.http_session.get(url) as resp:
+            if resp.status != 200: return await ctx.send("Could not download the image.")
+            img = await resp.read()
+        
+        f = discord.File(BytesIO(img), filename="sticker.png")
+        await ctx.guild.create_sticker(name=name, description="Bot added", emoji=emoji, file=f)
+        await ctx.send(f"✅ Sticker **{name}** added successfully!")
+    except Exception as e: await ctx.send(f"❌ Error: {e}")
+        
+@bot.command()
 async def rep(ctx, member: discord.Member):
     
     global reputation 
