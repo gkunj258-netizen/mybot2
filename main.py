@@ -11,6 +11,8 @@ from operator import itemgetter
 from typing import Optional
 import aiohttp 
 from collections import defaultdict
+from PIL import image
+import io
 
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -723,6 +725,15 @@ async def addemoji(ctx, name: str, url: str):
         async with bot.http_session.get(url) as resp:
             if resp.status != 200: return await ctx.send("Could not download the image.")
             img = await resp.read()
+            img = Image.open(io.BytesIO(img_data))
+            if img.format == 'GIF':
+                else:
+                    img = img.resize((128,128))
+                    byte_arr = io.BytesIO()
+                    img.save(byte_arr,format='PNG')
+                transparency
+                    img_data = byte_arr.getvalue()
+            
         emoji = await ctx.guild.create_custom_emoji(name=name, image=img)
         await ctx.send(f"✅ Created emoji: {emoji}")
     except Exception as e: await ctx.send(f"❌ Error: {e}")
