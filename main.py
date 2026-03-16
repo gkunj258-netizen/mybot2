@@ -11,8 +11,6 @@ from operator import itemgetter
 from typing import Optional
 import aiohttp 
 from collections import defaultdict
-from PIL import image
-import io
 
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
