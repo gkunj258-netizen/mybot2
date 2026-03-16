@@ -403,8 +403,47 @@ async def weekly_leaderboard_announcement_error(error):
 # --------------------------------------------------------
 # 🤖 BOT EVENTS
 # --------------------------------------------------------
+
+# --- 1. THE CLASS (Place this first) ---
+class RolePicker(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None) # This makes the buttons last forever
+
+    @ui.button(label="Male", style=ButtonStyle.blue, custom_id="role_male")
+    async def male(self, interaction: Interaction, button: ui.Button):
+        role = discord.utils.get(interaction.guild.roles, name="Male")
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message("Removed 'Male' role.", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message("Added 'Male' role!", ephemeral=True)
+
+    @ui.button(label="Female", style=ButtonStyle.red, custom_id="role_female")
+    async def female(self, interaction: Interaction, button: ui.Button):
+        role = discord.utils.get(interaction.guild.roles, name="Female")
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role)
+            await interaction.response.send_message("Removed 'Female' role.", ephemeral=True)
+        else:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message("Added 'Female' role!", ephemeral=True)
+
+# --- 2. THE COMMAND (Place this right after the class) ---
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def setup_roles(ctx):
+    """Admin only: Sends the menu for users to pick roles."""
+    embed = discord.Embed(
+        title="Select Your Gender Role", 
+        description="Click the buttons below to toggle your roles.", 
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed, view=RolePicker())
+    
 @bot.event
 async def on_ready():
+    bot.add_view(RolePicker())
     print(f'Bot is ready! Logged in as {bot.user}')
     await bot.change_presence(activity=discord.Game(name="+help | Gemini AI"))
     
