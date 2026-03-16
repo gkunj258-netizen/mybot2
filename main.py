@@ -732,12 +732,11 @@ async def addemoji(ctx, name: str, url: str):
                     img = img.resize((128,128))
                     byte_arr = io.BytesIO()
                     img.save(byte_arr,format='PNG')
-                transparency
                     img_data = byte_arr.getvalue()
             
-        emoji = await ctx.guild.create_custom_emoji(name=name, image=img)
-        await ctx.send(f"✅ Created emoji: {emoji}")
-    except Exception as e: await ctx.send(f"❌ Error: {e}")
+            emoji = await ctx.guild.create_custom_emoji(name=name, image=img)
+            await ctx.send(f"✅ Created emoji: {emoji}")
+            except Exception as e: await ctx.send(f"❌ Error: {e}")
 
 @bot.command()
 @commands.has_permissions(manage_expressions=True)
