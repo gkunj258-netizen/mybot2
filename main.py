@@ -409,7 +409,7 @@ class RolePicker(ui.View):
     def __init__(self):
         super().__init__(timeout=None) # This makes the buttons last forever
 
-    @ui.button(label="Male", style=ButtonStyle.blue, custom_id="role_male")
+    @ui.button(label="Male", style=ButtonStyle.blurple, custom_id="role_male")
     async def male(self, interaction: Interaction, button: ui.Button):
         role = discord.utils.get(interaction.guild.roles, name="Male")
         if role in interaction.user.roles:
@@ -419,7 +419,7 @@ class RolePicker(ui.View):
             await interaction.user.add_roles(role)
             await interaction.response.send_message("Added 'Male' role!", ephemeral=True)
 
-    @ui.button(label="Female", style=ButtonStyle.red, custom_id="role_female")
+    @ui.button(label="Female", style=ButtonStyle.danger, custom_id="role_female")
     async def female(self, interaction: Interaction, button: ui.Button):
         role = discord.utils.get(interaction.guild.roles, name="Female")
         if role in interaction.user.roles:
