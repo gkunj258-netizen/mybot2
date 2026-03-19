@@ -715,11 +715,11 @@ class RolePicker(ui.View):
            
          if word in content_lower:
              
-           await message.delete()
+        await message.delete()
              
-           await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed here!", delete_after=5)
+        await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed here!", delete_after=5)
           
-           return # Stop processing so it doesn't count as a message or trigger other commands
+        return # Stop processing so it doesn't count as a message or trigger other commands
                 
     # --- HIGHLIGHT CHECKER ---
     # We don't want to ping the person who actually wrote the message
