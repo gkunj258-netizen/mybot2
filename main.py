@@ -498,25 +498,6 @@ async def suggeste(ctx):
         res = model.generate_content("Suggest 5 great English songs of different genres.")
         await ctx.send(f"🎸 *English Recommendations:*\n{res.text}")
 
-# --- 3. AUTO-RATING SYSTEM ---
-@bot.event
-async def on_message(message):
-    if message.author.bot: return
-
-    # Rate Poems
-    if "Poem-" in message.channel.name and len(message.content.split()) > 5:
-        if not message.content.startswith('+'):
-            res = model.generate_content(f"Rate this 5-line poem out of 5 and give human feedback: {message.content}")
-            await message.reply(res.text)
-
-    # Rate Songs (Audio Files)
-    if "Song-" in message.channel.name and message.attachments:
-        res = model.generate_content("A user just uploaded a song. Provide a human-perspective encouraging review and rate out of 10.")
-        await message.reply(res.text)
-
-class RolePicker(ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
 
     # --- ROW 1: GENDER & AGE ---
     @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple, custom_id="role_male")
@@ -703,7 +684,29 @@ async def on_message(message):
     if message.author == bot.user or message.guild is None:
         await bot.process_commands(message)
         return
+        
+ # --- POEM RATING ---
+    if "Poem-" in message.channel.name and not message.content.startswith('+'):
+        # Only rate if the message is long enough to be a poem
+        if len(message.content.split()) > 5:
+            prompt = f"Rate this 5-line poem out of 5 and suggest improvements: {message.content}"
+            response = model.generate_content(prompt)
+            await message.reply(f"⭐ *Gemini Review:*\n{response.text}")
 
+    # --- SONG RATING ---
+    if "Song-" in message.channel.name and message.attachments:
+        for attachment in message.attachments:
+            # Check if it's an audio file
+            if any(attachment.filename.lower().endswith(ext) for ext in ['.mp3', '.wav', '.m4a', '.ogg']):
+                await message.reply("Analyzing your track... 🎧")
+                prompt = "Act as a professional music judge. Provide an encouraging, human-perspective rating out of 10 and suggest tips for improvement."
+                response = model.generate_content(prompt)
+                await message.reply(response.text)
+
+class RolePicker(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        
     # 2. THE FILTER (Add this part!)
     content_lower = message.content.lower()
     if restricted_words: # Only check if the list isn't empty
