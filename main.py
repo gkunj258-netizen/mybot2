@@ -710,8 +710,8 @@ class RolePicker(ui.View):
     # 2. THE FILTER (Add this part!)
     content_lower = message.content.lower()
     if restricted_words: # Only check if the list isn't empty
-        for word in restricted_words:
-            if word in content_lower:
+    for word in restricted_words:
+    if word in content_lower:
     await message.delete()
     await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed here!", delete_after=5)
     return # Stop processing so it doesn't count as a message or trigger other commands
