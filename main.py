@@ -11,6 +11,8 @@ from operator import itemgetter
 from typing import Optional
 import aiohttp 
 from collections import defaultdict
+import goole.generativeai as genai
+import io
 
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -105,7 +107,8 @@ if reputation is None:
 message_counts = load_data('messages.json')
 if message_counts is None:
     message_counts = {}
-    
+
+hint_tracker = {}
 user_chats = {}
 HIGHLIGHTS_FILE = 'highlights.json'
 
@@ -141,8 +144,18 @@ message_counts = load_data(MESSAGES_FILE)
 reminders_data = load_data(REMINDERS_FILE)
 
 # --- LOGGING UTILITIES ---
+
+async def delete_thread_later(thread,delay):
+    await asyncio.sleep(delay)
+    try:
+        await thread.delete()
+    except:
+        pass
+        
 def get_mod_log_channel(guild: discord.Guild):
     return discord.utils.get(guild.text_channels, name=MOD_LOG_CHANNEL_NAME)
+
+
 
 async def send_mod_log(guild, title, description, moderator: discord.User):
     channel = get_mod_log_channel(guild)
@@ -220,7 +233,7 @@ async def create_reminder(ctx, title: str, date_str: str, time_str: str, private
         title=embed_title,
         description=f"**Title:** {title}\n**Delivery:** {confirmation_time_ist}",
         color=discord.Color.green()
-    )
+  )
     
     # Attempt to fetch recipient name for a clear confirmation message
     try:
@@ -403,6 +416,103 @@ async def weekly_leaderboard_announcement_error(error):
 # --------------------------------------------------------
 # 🤖 BOT EVENTS
 # --------------------------------------------------------
+
+class CreateMenu(discord.ui.View):
+    def _init_(self):
+        super()._init_(timeout=None)
+
+    @discord.ui.button(label="Poem", style=discord.ButtonStyle.blurple, emoji="✍️")
+    async def poem_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        thread = await interaction.channel.create_thread(
+            name=f"Poem-{interaction.user.name}",
+            type=discord.ChannelType.public_thread
+        )
+        await interaction.response.send_message(f"Poem thread created: {thread.mention}", ephemeral=True)
+        
+        words = ["Sky", "Ancient", "Whisper", "Fire", "Gold"]
+        await thread.send(f"Welcome {interaction.user.mention}! Write a *5-line poem* using these words: *{', '.join(words)}*.\nUse +hpoem for a hint (Max 3).")
+
+    @discord.ui.button(label="Riddle", style=discord.ButtonStyle.success, emoji="🧩")
+    async def riddle_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        thread = await interaction.channel.create_thread(
+            name=f"Riddle-{interaction.user.name}",
+            type=discord.ChannelType.public_thread
+        )
+        await interaction.response.send_message(f"Riddle started in {thread.mention}", ephemeral=True)
+        
+        # Start the 7-day logic in the background
+        bot.loop.create_task(self.riddle_marathon(thread, interaction.user))
+
+    async def riddle_marathon(self, thread, user):
+        riddle = "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"
+        hints = ["I am an echo.", "Wait, that was the answer...", "Actually, let's pretend I'm giving hints daily!"]
+        
+        await thread.send(f"*7-Day Challenge Started!*\n{riddle}\nI will provide a hint every 24 hours.")
+        
+        # This loop waits 7 days, giving a hint daily
+        for i in range(1, 7):
+            await asyncio.sleep(86400) # 24 hours
+            if thread: await thread.send(f"*Day {i+1} Hint:* (Gemini would generate this daily)")
+            
+        await asyncio.sleep(86400)
+        await thread.send("Time's up! Thread deleting...")
+        await asyncio.sleep(10)
+        await thread.delete()
+
+    @discord.ui.button(label="Song", style=discord.ButtonStyle.danger, emoji="🎤")
+    async def song_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        thread = await interaction.channel.create_thread(
+            name=f"Song-{interaction.user.name}",
+            type=discord.ChannelType.public_thread
+        )
+        await interaction.response.send_message(f"Studio open: {thread.mention}", ephemeral=True)
+        await thread.send("Upload your song file! Use +suggesth or +suggeste for AI recs. Deleted in 24h.")
+        bot.loop.create_task(delete_thread_later(thread, 86400))
+
+# --- 2. COMMANDS & AI LOGIC ---
+@bot.command()
+async def create(ctx):
+    """Trigger the selection menu"""
+    await ctx.send("Select your creative mode:", view=CreateMenu())
+
+@bot.command()
+async def hpoem(ctx):
+    if "Poem-" in ctx.channel.name:
+        tid = ctx.channel.id
+        hint_tracker[tid] = hint_tracker.get(tid, 0) + 1
+        if hint_tracker[tid] <= 3:
+            res = model.generate_content("Give a cryptic hint for a poem about nature.")
+            await ctx.send(f"💡 *Hint {hint_tracker[tid]}/3:* {res.text}")
+        else:
+            await ctx.send("No more hints!")
+
+@bot.command()
+async def suggesth(ctx):
+    if "Song-" in ctx.channel.name:
+        res = model.generate_content("Suggest 5 great Hindi songs of different genres.")
+        await ctx.send(f"🎧 *Hindi Recommendations:*\n{res.text}")
+
+@bot.command()
+async def suggeste(ctx):
+    if "Song-" in ctx.channel.name:
+        res = model.generate_content("Suggest 5 great English songs of different genres.")
+        await ctx.send(f"🎸 *English Recommendations:*\n{res.text}")
+
+# --- 3. AUTO-RATING SYSTEM ---
+@bot.event
+async def on_message(message):
+    if message.author.bot: return
+
+    # Rate Poems
+    if "Poem-" in message.channel.name and len(message.content.split()) > 5:
+        if not message.content.startswith('+'):
+            res = model.generate_content(f"Rate this 5-line poem out of 5 and give human feedback: {message.content}")
+            await message.reply(res.text)
+
+    # Rate Songs (Audio Files)
+    if "Song-" in message.channel.name and message.attachments:
+        res = model.generate_content("A user just uploaded a song. Provide a human-perspective encouraging review and rate out of 10.")
+        await message.reply(res.text)
 
 class RolePicker(ui.View):
     def __init__(self):
