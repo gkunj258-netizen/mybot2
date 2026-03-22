@@ -644,43 +644,29 @@ async def on_message(message):
     
     content_lower = message.content.lower()
     
-   # --- 1. RESTRICTED WORDS FILTER --- if restricted_words:
+    # --- 1. RESTRICTED WORDS FILTER ---
+    if restricted_words:
+        for word in restricted_words:
+            if word in content_lower:
+                try:
+                    await message.delete()
+                    await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed!", delete_after=5)
+                    return
+                except: pass
 
-for word in restricted_words:
+    # --- 2. POEM RATING ---
+    if "Poem-" in message.channel.name and not message.content.startswith('+'):
+        if len(message.content.split()) > 5:
+            res = model.generate_content(f"Rate this 5-line poem out of 5 and give tips: {message.content}")
+            await message.reply(f"⭐ *Gemini Review:*\n{res.text}")
 
-if word in content_lower:
-
-try:
-
-await message.delete()
-
-await message.channel.send(f"
-
-{message.author.mention}, that word is not allowed!", delete_after=5)
-
-return
-
-except: pass
-
-# --- 2. POEM RATING ---
-
-if "Poem-" in message.channel.name and not message.content.startswith('+'): if len(message.content.split()) > 5:
-
-res = model.generate_content(f"Rate this 5-line poem out of 5 and give tips: {message.content}")
-
-await message.reply(f" *GeminiReview:*\n{res.text}")
-
-# --- 3. SONG RATING ---
-
-if "Song-" in message.channel.name and message.attachments:
-
-for attachment in message.attachments: if any(attachment.filename.lower().e ndswith(ext) for ext in ['.mp3', '.wav', '.m4a', .ogg']):
-
-await message.reply("Analyzing your track...j")
-
-res = model.generate_content("Act as a professional music judge. Rate out of 10 and give tips.")
-
-await message.reply(res.text)
+    # --- 3. SONG RATING ---
+    if "Song-" in message.channel.name and message.attachments:
+        for attachment in message.attachments:
+            if any(attachment.filename.lower().endswith(ext) for ext in ['.mp3', '.wav', '.m4a', '.ogg']):
+                await message.reply("Analyzing your track... 🎧")
+                res = model.generate_content("Act as a professional music judge. Rate out of 10 and give tips.")
+                await message.reply(res.text)
     
     for user_id, words in highlights.items():
         if int(user_id) == message.author.id:
