@@ -11,7 +11,6 @@ from operator import itemgetter
 from typing import Optional
 import aiohttp 
 from collections import defaultdict
-import google.generativeai as genai
 import io
 
 SAFETY_SETTINGS = [
