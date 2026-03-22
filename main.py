@@ -182,6 +182,8 @@ def split_message_chunks(text: str) -> list[str]:
         chunks.append(current_chunk)
     return chunks
 
+
+
 # --------------------------------------------------------
 # ⚙️ BACKGROUND TASKS AND UTILITIES
 # --------------------------------------------------------
@@ -469,36 +471,6 @@ class CreateMenu(discord.ui.View):
         await thread.send("Upload your song file! Use +suggesth or +suggeste for AI recs. Deleted in 24h.")
         bot.loop.create_task(delete_thread_later(thread, 86400))
 
-# --- 2. COMMANDS & AI LOGIC ---
-@bot.command()
-async def create(ctx):
-    """Trigger the selection menu"""
-    await ctx.send("Select your creative mode:", view=CreateMenu())
-
-@bot.command()
-async def hpoem(ctx):
-    if "Poem-" in ctx.channel.name:
-        tid = ctx.channel.id
-        hint_tracker[tid] = hint_tracker.get(tid, 0) + 1
-        if hint_tracker[tid] <= 3:
-            res = model.generate_content("Give a cryptic hint for a poem about nature.")
-            await ctx.send(f"💡 *Hint {hint_tracker[tid]}/3:* {res.text}")
-        else:
-            await ctx.send("No more hints!")
-
-@bot.command()
-async def suggesth(ctx):
-    if "Song-" in ctx.channel.name:
-        res = model.generate_content("Suggest 5 great Hindi songs of different genres.")
-        await ctx.send(f"🎧 *Hindi Recommendations:*\n{res.text}")
-
-@bot.command()
-async def suggeste(ctx):
-    if "Song-" in ctx.channel.name:
-        res = model.generate_content("Suggest 5 great English songs of different genres.")
-        await ctx.send(f"🎸 *English Recommendations:*\n{res.text}")
-
-
     # --- ROW 1: GENDER & AGE ---
     @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple, custom_id="role_male")
     async def male(self, interaction: discord.Interaction, button: ui.Button):
@@ -567,25 +539,10 @@ async def suggeste(ctx):
             await interaction.user.add_roles(role)
             await interaction.response.send_message(f"Added **{role_name}**!", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def setup_roles(ctx):
-    embed = discord.Embed(
-        title="✨ Professional Role Menu",
-        description=(
-            "**Click the buttons below to select your roles!**\n\n"
-            "👫 **Gender:** Male, Female\n"
-            "🎂 **Age:** 18-, 18+\n"
-            "🎮 **Games:** Roblox, Minecraft, Valorant, BGMI, CS2, GTA, Fortnite, COD, Mobile Legends"
-        ),
-        color=0x5865F2 # Blurple color
-    )
-    embed.set_footer(text="Manage your roles instantly by clicking.")
-    await ctx.send(embed=embed, view=RolePicker())
-    
 @bot.event
 async def on_ready():
     bot.add_view(RolePicker())
+    bot.add_view(CreateMenu())
     print(f'Bot is ready! Logged in as {bot.user}')
     await bot.change_presence(activity=discord.Game(name="+help | Gemini AI"))
     
@@ -684,46 +641,46 @@ async def on_message(message):
     if message.author == bot.user or message.guild is None:
         await bot.process_commands(message)
         return
-        
- # --- POEM RATING ---
-    if "Poem-" in message.channel.name and not message.content.startswith('+'):
-        # Only rate if the message is long enough to be a poem
-        if len(message.content.split()) > 5:
-            prompt = f"Rate this 5-line poem out of 5 and suggest improvements: {message.content}"
-            response = model.generate_content(prompt)
-            await message.reply(f"⭐ *Gemini Review:*\n{response.text}")
-
-    # --- SONG RATING ---
-    if "Song-" in message.channel.name and message.attachments:
-        for attachment in message.attachments:
-            # Check if it's an audio file
-            if any(attachment.filename.lower().endswith(ext) for ext in ['.mp3', '.wav', '.m4a', '.ogg']):
-                await message.reply("Analyzing your track... 🎧")
-                prompt = "Act as a professional music judge. Provide an encouraging, human-perspective rating out of 10 and suggest tips for improvement."
-                response = model.generate_content(prompt)
-                await message.reply(response.text)
-
-class RolePicker(ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        
-    # 2. THE FILTER (Add this part!)
+    
     content_lower = message.content.lower()
-    if restricted_words:
-    # Only check if the list isn't empty
-       for word in restricted_words:
-           
-         if word in content_lower:
-             
-        await message.delete()
-             
-        await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed here!", delete_after=5)
-          
-        return # Stop processing so it doesn't count as a message or trigger other commands
-                
-    # --- HIGHLIGHT CHECKER ---
-    # We don't want to ping the person who actually wrote the message
-    content = message.content.lower()
+    
+   # --- 1. RESTRICTED WORDS FILTER --- if restricted_words:
+
+for word in restricted_words:
+
+if word in content_lower:
+
+try:
+
+await message.delete()
+
+await message.channel.send(f"
+
+{message.author.mention}, that word is not allowed!", delete_after=5)
+
+return
+
+except: pass
+
+# --- 2. POEM RATING ---
+
+if "Poem-" in message.channel.name and not message.content.startswith('+'): if len(message.content.split()) > 5:
+
+res = model.generate_content(f"Rate this 5-line poem out of 5 and give tips: {message.content}")
+
+await message.reply(f" *GeminiReview:*\n{res.text}")
+
+# --- 3. SONG RATING ---
+
+if "Song-" in message.channel.name and message.attachments:
+
+for attachment in message.attachments: if any(attachment.filename.lower().e ndswith(ext) for ext in ['.mp3', '.wav', '.m4a', .ogg']):
+
+await message.reply("Analyzing your track...j")
+
+res = model.generate_content("Act as a professional music judge. Rate out of 10 and give tips.")
+
+await message.reply(res.text)
     
     for user_id, words in highlights.items():
         if int(user_id) == message.author.id:
@@ -832,6 +789,51 @@ class RolePicker(ui.View):
 # --------------------------------------------------------
 # 📢 REMINDER COMMANDS
 # --------------------------------------------------------
+
+# --- 2. COMMANDS & AI LOGIC ---
+@bot.command()
+async def create(ctx):
+    """Trigger the selection menu"""
+    await ctx.send("Select your creative mode:", view=CreateMenu())
+
+@bot.command()
+async def hpoem(ctx):
+    if "Poem-" in ctx.channel.name:
+        tid = ctx.channel.id
+        hint_tracker[tid] = hint_tracker.get(tid, 0) + 1
+        if hint_tracker[tid] <= 3:
+            res = model.generate_content("Give a cryptic hint for a poem about nature.")
+            await ctx.send(f"💡 *Hint {hint_tracker[tid]}/3:* {res.text}")
+        else:
+            await ctx.send("No more hints!")
+
+@bot.command()
+async def suggesth(ctx):
+    if "Song-" in ctx.channel.name:
+        res = model.generate_content("Suggest 5 great Hindi songs of different genres.")
+        await ctx.send(f"🎧 *Hindi Recommendations:*\n{res.text}")
+
+@bot.command()
+async def suggeste(ctx):
+    if "Song-" in ctx.channel.name:
+        res = model.generate_content("Suggest 5 great English songs of different genres.")
+        await ctx.send(f"🎸 *English Recommendations:*\n{res.text}")
+        
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def setup_roles(ctx):
+    embed = discord.Embed(
+        title="✨ Professional Role Menu",
+        description=(
+            "**Click the buttons below to select your roles!**\n\n"
+            "👫 **Gender:** Male, Female\n"
+            "🎂 **Age:** 18-, 18+\n"
+            "🎮 **Games:** Roblox, Minecraft, Valorant, BGMI, CS2, GTA, Fortnite, COD, Mobile Legends"
+        ),
+        color=0x5865F2 # Blurple color
+    )
+    embed.set_footer(text="Manage your roles instantly by clicking.")
+    await ctx.send(embed=embed, view=RolePicker())
 
 @bot.command()
 async def rep(ctx, member: discord.Member):
