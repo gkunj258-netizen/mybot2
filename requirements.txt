@@ -1,5 +1,4 @@
 discord.py
-google-genai
 groq
 aiohttp
 python-dotenv
