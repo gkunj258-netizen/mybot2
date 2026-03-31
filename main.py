@@ -418,7 +418,7 @@ class RolePicker(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    async def handle_role(self, interaction: Interaction, role_name: str):
+async def handle_role(self, interaction: Interaction, role_name: str):
         role = discord.utils.get(interaction.guild.roles, name=role_name)
         if not role: return await interaction.response.send_message(f"Role '{role_name}' not found!", ephemeral=True)
         if role in interaction.user.roles:
