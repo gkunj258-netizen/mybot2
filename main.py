@@ -427,103 +427,62 @@ class RolePicker(ui.View):
         else:
             await interaction.user.add_roles(role)
             await interaction.response.send_message(f"Added {role_name}!", ephemeral=True)
+    
     @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple, custom_id="role_male")
-
-    async def male(self, interaction: discord.Interaction, button: ui.Button):
-
+async def male(self, interaction: discord.Interaction, button: ui.Button):
     await self.toggle_role(interaction, "Male")
-
+    
     @ui.button(label="Female", emoji="👧", style=discord.ButtonStyle.danger, custom_id="role_female")
-
-    async def female(self, interaction: discord.Interaction, button: ui.Button):
-
+async def female(self, interaction: discord.Interaction, button: ui.Button):
     await self.toggle_role(interaction, "Female")
 
     @ui.button(label="18-", emoji="🍼", style=discord.ButtonStyle.secondary, custom_id="role_u18")
-
-    async def u18(self, interaction: discord.Interaction, button: ui.Button):
-
+async def u18(self, interaction: discord.Interaction, button: ui.Button):
     await self.toggle_role(interaction, "18-")
 
     @ui.button(label="18+", emoji="🔞", style=discord.ButtonStyle.secondary, custom_id="role_18plus")
-
-    async def plus18(self, interaction: discord.Interaction, button: ui.Button):
-
+async def plus18(self, interaction: discord.Interaction, button: ui.Button):
     await self.toggle_role(interaction, "18+")
 
 # --- ROW 2: CORE GAMES ---
 
-@ui.button(label="Roblox", emoji="🧱", style=discord.ButtonStyle.success, custom_id="role_roblox")
-
+    @ui.button(label="Roblox", emoji="🧱", style=discord.ButtonStyle.success, custom_id="role_roblox")
 async def roblox(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "Roblox")
 
-await self.toggle_role(interaction, "Roblox")
-
-
-
-@ui.button(label="Minecraft", emoji="🌲", style=discord.ButtonStyle.success, custom_id="role_mc")
-
+    @ui.button(label="Minecraft", emoji="🌲", style=discord.ButtonStyle.success, custom_id="role_mc")
 async def minecraft(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "Minecraft")
 
-await self.toggle_role(interaction, "Minecraft")
-
-
-
-@ui.button(label="Valorant", emoji="🎯", style=discord.ButtonStyle.danger, custom_id="role_val")
-
+    @ui.button(label="Valorant", emoji="🎯", style=discord.ButtonStyle.danger, custom_id="role_val")
 async def valorant(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "Valorant")
 
-await self.toggle_role(interaction, "Valorant")
-
-
-
-@ui.button(label="BGMI", emoji="🪂", style=discord.ButtonStyle.blurple, custom_id="role_bgmi")
-
+    @ui.button(label="BGMI", emoji="🪂", style=discord.ButtonStyle.blurple, custom_id="role_bgmi")
 async def bgmi(self, interaction: discord.Interaction, button: ui.Button):
-
-await self.toggle_role(interaction, "BGMI")
-
-
+    await self.toggle_role(interaction, "BGMI")
 
 # --- ROW 3: NEW GAMES ---
 
-@ui.button(label="CS2", emoji="💣", style=discord.ButtonStyle.secondary, custom_id="role_cs2")
-
+    @ui.button(label="CS2", emoji="💣", style=discord.ButtonStyle.secondary, custom_id="role_cs2")
 async def cs2(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "CS2")
 
-await self.toggle_role(interaction, "CS2")
-
-
-
-@ui.button(label="GTA", emoji="🚗", style=discord.ButtonStyle.success, custom_id="role_gta")
-
+    @ui.button(label="GTA", emoji="🚗", style=discord.ButtonStyle.success, custom_id="role_gta")
 async def gta(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "GTA")
 
-await self.toggle_role(interaction, "GTA")
-
-
-
-@ui.button(label="Fortnite", emoji="💃", style=discord.ButtonStyle.blurple, custom_id="role_fortnite")
-
+    @ui.button(label="Fortnite", emoji="💃", style=discord.ButtonStyle.blurple, custom_id="role_fortnite")
 async def fortnite(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "Fortnite")
 
-await self.toggle_role(interaction, "Fortnite")
-
-
-
-@ui.button(label="COD", emoji="🎖️", style=discord.ButtonStyle.danger, custom_id="role_cod")
-
+    @ui.button(label="COD", emoji="🎖️", style=discord.ButtonStyle.danger, custom_id="role_cod")
 async def cod(self, interaction: discord.Interaction, button: ui.Button):
+    await self.toggle_role(interaction, "Call Of Duty")
 
-await self.toggle_role(interaction, "Call Of Duty")
-
-
-
-@ui.button(label="MLBB", emoji="⚔️", style=discord.ButtonStyle.success, custom_id="role_ml")
-
+    @ui.button(label="MLBB", emoji="⚔️", style=discord.ButtonStyle.success, custom_id="role_ml")
 async def ml(self, interaction: discord.Interaction, button: ui.Button):
-
-await self.toggle_role(interaction, "Mobile Legends")
+    await self.toggle_role(interaction, "Mobile Legends")
 
 
 class CreateMenu(discord.ui.View):
