@@ -705,6 +705,7 @@ async def on_message(message):
     content_lower = content.lower()
 
     # --- 1. RESTRICTED WORDS FILTER ---
+  if not message.content.startswith(bot.command_prefix):
     if restricted_words:
         for word in restricted_words:
             if word in content_lower:
