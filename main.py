@@ -516,25 +516,35 @@ class CreateMenu(discord.ui.View):
         )
 
     # --- RIDDLE BUTTON ---
-    @discord.ui.button(label="Riddle", emoji="🧩", style=discord.ButtonStyle.success, row=0)
-    async def riddle(self, interaction: discord.Interaction, button: discord.ui.Button):
-        thread = await interaction.channel.create_thread(
-            name=f"Case-{interaction.user.name}",
-            auto_archive_duration=60,
-            type=discord.ChannelType.public_thread
-        )
+@discord.ui.button(label="Riddle", emoji="🧩", style=discord.ButtonStyle.success)
+async def riddle(self, interaction: discord.Interaction, button: discord.ui.Button):
+    thread = await interaction.channel.create_thread(
+        name=f"Case-{interaction.user.name}",
+        auto_archive_duration=60,
+        type=discord.ChannelType.public_thread
+    )
 
-        await interaction.response.send_message(
-            f"🕵️ Case started in: {thread.mention}", ephemeral=True
-        )
+    await interaction.response.send_message(
+        f"🕵️ Case started in: {thread.mention}", ephemeral=True
+    )
 
+    try:
         case = await asyncio.to_thread(
-            get_groq_text, "Generate a hard mysterious detective riddle."
+            get_groq_text,
+            "Generate a short, interesting detective riddle."
         )
-        await thread.send(f"🔍 **THE MYSTERY:**\n{case}")
 
-        bot.loop.create_task(self.riddle_marathon(thread, interaction.user))
+        if not case or len(case.strip()) == 0:
+            case = "I speak without a mouth and hear without ears. What am I?"
 
+    except Exception as e:
+        print(f"Riddle Error: {e}")
+        case = "I speak without a mouth and hear without ears. What am I?"
+
+    await thread.send(f"🔍 **THE MYSTERY:**\n{case}")
+
+    bot.loop.create_task(self.riddle_marathon(thread, interaction.user))
+    
     # --- SONG BUTTON ---
     @discord.ui.button(label="Song", emoji="🎤", style=discord.ButtonStyle.danger, row=0)
     async def song(self, interaction: discord.Interaction, button: discord.ui.Button):
