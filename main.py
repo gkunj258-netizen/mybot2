@@ -1525,17 +1525,26 @@ async def schedule(ctx, movie: str, date: str, time: str):
 async def talk(ctx, *, query):
     """Fast AI Chat using Groq"""
     async with ctx.typing():
-        response = await asyncio.to_thread(get_ai_response, query)
+        response = await asyncio.to_thread(get_groq_text, query)
         await ctx.reply(response)
+
 
 @bot.command()
 async def rate(ctx, member: discord.Member = None):
-    """Rate avatar using logic (since Groq is text-only, we use aesthetic logic)"""
+    """Rate avatar using AI"""
     member = member or ctx.author
+
     prompt = f"Give a creative 1-5 star rating and aesthetic description for a Discord user named {member.display_name}."
-    response = await asyncio.to_thread(get_ai_response, prompt)
-    embed = discord.Embed(title=f"Rating: {member.name}", description=response, color=0xFFD700)
+
+    response = await asyncio.to_thread(get_groq_text, prompt)
+
+    embed = discord.Embed(
+        title=f"Rating: {member.name}",
+        description=response,
+        color=0xFFD700
+    )
     embed.set_thumbnail(url=member.display_avatar.url)
+
     await ctx.send(embed=embed)
 
 # --------------------------------------------------------
