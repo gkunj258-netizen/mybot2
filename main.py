@@ -705,19 +705,19 @@ async def on_message(message):
     content_lower = content.lower()
 
     # --- 1. RESTRICTED WORDS FILTER ---
-  if not message.content.startswith(bot.command_prefix):
-    if restricted_words:
-        for word in restricted_words:
-            if word in content_lower:
-                try:
-                    await message.delete()
-                    await message.channel.send(
-                        f"🚫 {message.author.mention}, that word is not allowed!",
-                        delete_after=5
-                    )
-                    return
-                except:
-                    pass
+    if not message.content.startswith(bot.command_prefix):
+        if restricted_words:
+            for word in restricted_words:
+                if word in content_lower:
+                    try:
+                        await message.delete()
+                        await message.channel.send(
+                            f"🚫 {message.author.mention}, that word is not allowed!",
+                            delete_after=5
+                        )
+                        return
+                    except:
+                        pass
 
     # --- POEM AUTO REVIEW ---
     if "poem-" in message.channel.name.lower() and len(content.split()) > 5:
