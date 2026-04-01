@@ -668,41 +668,50 @@ async def on_message_edit(before, after):
 
             await log_channel.send(embed=embed)
 
-
 @bot.event
 async def on_message(message):
     if message.author == bot.user or message.guild is None:
         await bot.process_commands(message)
         return
 
-        await bot.process_commands(message)
-    
-    content_lower = message.content.lower()
-    
+    content = message.content
+    content_lower = content.lower()
+
     # --- 1. RESTRICTED WORDS FILTER ---
     if restricted_words:
         for word in restricted_words:
             if word in content_lower:
                 try:
                     await message.delete()
-                    await message.channel.send(f"🚫 {message.author.mention}, that word is not allowed!", delete_after=5)
+                    await message.channel.send(
+                        f"🚫 {message.author.mention}, that word is not allowed!",
+                        delete_after=5
+                    )
                     return
-                except: pass
+                except:
+                    pass
 
-   if "Poem-" in message.channel.name and len(message.content.split()) > 5:
-        res = await asyncio.to_thread(get_ai_response, f"Rate this poem 1-5: {message.content}")
+    # --- POEM AUTO REVIEW ---
+    if "poem-" in message.channel.name.lower() and len(content.split()) > 5:
+        res = await asyncio.to_thread(
+            get_groq_text, f"Rate this poem from 1-5 and give a short reason:\n{content}"
+        )
         await message.reply(f"✍️ **Poem Review:**\n{res}")
 
-    if "Song-" in message.channel.name and message.attachments:
-        res = await asyncio.to_thread(get_ai_response, "Give a critique of a song submission.")
+    # --- SONG AUTO REVIEW ---
+    if "song-" in message.channel.name.lower() and message.attachments:
+        res = await asyncio.to_thread(
+            get_groq_text, "Give a short professional critique of a song submission."
+        )
         await message.reply(f"🎧 **Music Review:**\n{res}")
 
+    # --- HIGHLIGHT SYSTEM ---
     for user_id, words in highlights.items():
         if int(user_id) == message.author.id:
             continue
-            
+
         for word in words:
-            if word in content:
+            if word in content_lower:
                 user = bot.get_user(int(user_id))
                 if user:
                     try:
@@ -712,12 +721,14 @@ async def on_message(message):
                             color=discord.Color.gold()
                         )
                         embed.add_field(name="Author", value=message.author.name, inline=True)
-                        embed.add_field(name="Message", value=message.content, inline=False)
-                        embed.add_field(name="Jump to Message", value=f"[Click Here]({message.jump_url})")
-                        
+                        embed.add_field(name="Message", value=content, inline=False)
+                        embed.add_field(
+                            name="Jump to Message",
+                            value=f"[Click Here]({message.jump_url})"
+                        )
+
                         await user.send(embed=embed)
                     except discord.Forbidden:
-                        # This happens if the user's DMs are closed
                         pass
                         
     # --- 🛡️ SPAM PROTECTION FEATURE ---
