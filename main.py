@@ -414,8 +414,7 @@ class CreateMenu(discord.ui.View):
    # --------------------------------------------------------
 # ✍️ FIXED CREATIVE THREADS (+create)
 # --------------------------------------------------------
-
-    class RolePicker(ui.View):
+class RolePicker(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
