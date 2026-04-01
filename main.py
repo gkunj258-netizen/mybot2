@@ -414,27 +414,36 @@ class CreateMenu(discord.ui.View):
    # --------------------------------------------------------
 # ✍️ FIXED CREATIVE THREADS (+create)
 # --------------------------------------------------------
-class RolePicker(ui.View):
+
+    class RolePicker(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-async def handle_role(self, interaction: Interaction, role_name: str):
+    async def toggle_role(self, interaction: Interaction, role_name: str):
         role = discord.utils.get(interaction.guild.roles, name=role_name)
-        if not role: return await interaction.response.send_message(f"Role '{role_name}' not found!", ephemeral=True)
+        if not role:
+            return await interaction.response.send_message(
+                f"Role '{role_name}' not found!", ephemeral=True
+            )
+
         if role in interaction.user.roles:
             await interaction.user.remove_roles(role)
-            await interaction.response.send_message(f"Removed {role_name}!", ephemeral=True)
+            await interaction.response.send_message(
+                f"Removed {role_name}!", ephemeral=True
+            )
         else:
             await interaction.user.add_roles(role)
-            await interaction.response.send_message(f"Added {role_name}!", ephemeral=True)
-    
-    @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple, custom_id="role_male")
-async def male(self, interaction: discord.Interaction, button: ui.Button):
-    await self.toggle_role(interaction, "Male")
-    
-    @ui.button(label="Female", emoji="👧", style=discord.ButtonStyle.danger, custom_id="role_female")
-async def female(self, interaction: discord.Interaction, button: ui.Button):
-    await self.toggle_role(interaction, "Female")
+            await interaction.response.send_message(
+                f"Added {role_name}!", ephemeral=True
+            )
+
+    @ui.button(label="Male", emoji="👦", style=discord.ButtonStyle.blurple)
+    async def male(self, interaction: Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Male")
+
+    @ui.button(label="Female", emoji="👧", style=discord.ButtonStyle.danger)
+    async def female(self, interaction: Interaction, button: ui.Button):
+        await self.toggle_role(interaction, "Female")
 
     @ui.button(label="18-", emoji="🍼", style=discord.ButtonStyle.secondary, custom_id="role_u18")
 async def u18(self, interaction: discord.Interaction, button: ui.Button):
