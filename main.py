@@ -495,61 +495,83 @@ class CreateMenu(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Poem", emoji="✍️", style=discord.ButtonStyle.primary)
+    # --- POEM BUTTON ---
+    @discord.ui.button(label="Poem", emoji="✍️", style=discord.ButtonStyle.primary, row=0)
     async def poem(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Fix: Using auto_archive_duration to ensure thread is visible
         thread = await interaction.channel.create_thread(
             name=f"Poem-{interaction.user.name}",
             auto_archive_duration=60,
             type=discord.ChannelType.public_thread
         )
-        await interaction.response.send_message(f"✅ Poem thread created: {thread.mention}", ephemeral=True)
-        
-        words = await asyncio.to_thread(get_groq_text, "Give 5 random poetic words. Just the words.")
-        await thread.send(f"Welcome {interaction.user.mention}! Write a poem using: **{words}**")
 
-        @discord.ui.button(label="Riddle", emoji="🧩", style=discord.ButtonStyle.success)
+        await interaction.response.send_message(
+            f"✅ Poem thread created: {thread.mention}", ephemeral=True
+        )
+
+        words = await asyncio.to_thread(
+            get_groq_text, "Give 5 random poetic words. Just the words."
+        )
+        await thread.send(
+            f"Welcome {interaction.user.mention}! Write a poem using: **{words}**"
+        )
+
+    # --- RIDDLE BUTTON ---
+    @discord.ui.button(label="Riddle", emoji="🧩", style=discord.ButtonStyle.success, row=0)
     async def riddle(self, interaction: discord.Interaction, button: discord.ui.Button):
         thread = await interaction.channel.create_thread(
             name=f"Case-{interaction.user.name}",
             auto_archive_duration=60,
             type=discord.ChannelType.public_thread
         )
-        await interaction.response.send_message(f"🕵️ Case started in: {thread.mention}", ephemeral=True)
-        
-        case = await asyncio.to_thread(get_groq_text, "Generate a hard mysterious detective riddle.")
+
+        await interaction.response.send_message(
+            f"🕵️ Case started in: {thread.mention}", ephemeral=True
+        )
+
+        case = await asyncio.to_thread(
+            get_groq_text, "Generate a hard mysterious detective riddle."
+        )
         await thread.send(f"🔍 **THE MYSTERY:**\n{case}")
 
-        # Start the 7-day logic in the background
         bot.loop.create_task(self.riddle_marathon(thread, interaction.user))
 
-    async def riddle_marathon(self, thread, user):
-        riddle = "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"
-        hints = ["I am an echo.", "Wait, that was the answer...", "Actually, let's pretend I'm giving hints daily!"]
-        
-        await thread.send(f"*7-Day Challenge Started!*\n{riddle}\nI will provide a hint every 24 hours.")
-        
-        # This loop waits 7 days, giving a hint daily
-        for i in range(1, 7):
-            await asyncio.sleep(86400) # 24 hours
-            if thread: await thread.send(f"*Day {i+1} Hint:* (Gemini would generate this daily)")
-            
-        await asyncio.sleep(86400)
-        await thread.send("Time's up! Thread deleting...")
-        await asyncio.sleep(10)
-        await thread.delete()
-
-     @discord.ui.button(label="Song", emoji="🎤", style=discord.ButtonStyle.danger)
+    # --- SONG BUTTON ---
+    @discord.ui.button(label="Song", emoji="🎤", style=discord.ButtonStyle.danger, row=0)
     async def song(self, interaction: discord.Interaction, button: discord.ui.Button):
         thread = await interaction.channel.create_thread(
             name=f"Song-{interaction.user.name}",
             auto_archive_duration=60,
             type=discord.ChannelType.public_thread
         )
-        await interaction.response.send_message(f"🎤 Studio opened: {thread.mention}", ephemeral=True)
-        await thread.send("Upload your song (mp3/wav) here! I'll give you a professional critique.")
+
+        await interaction.response.send_message(
+            f"🎤 Studio opened: {thread.mention}", ephemeral=True
+        )
+
+        await thread.send(
+            "Upload your song (mp3/wav) here! I'll give you a professional critique."
+        )
+
         bot.loop.create_task(delete_thread_later(thread, 86400))
 
+    # --- RIDDLE MARATHON BACKGROUND TASK ---
+    async def riddle_marathon(self, thread, user):
+        riddle = "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?"
+
+        await thread.send(
+            f"*7-Day Challenge Started!*\n{riddle}\nI will provide a hint every 24 hours."
+        )
+
+        for i in range(1, 7):
+            await asyncio.sleep(86400)
+            if thread:
+                await thread.send(f"*Day {i+1} Hint:*")
+
+        await asyncio.sleep(86400)
+        await thread.send("Time's up! Thread deleting...")
+        await asyncio.sleep(10)
+        await thread.delete()
+        
 @bot.event
 async def on_ready():
     bot.add_view(RolePicker())
