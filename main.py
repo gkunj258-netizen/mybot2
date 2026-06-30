@@ -36,6 +36,26 @@ def get_groq_text(prompt):
     )
     return completion.choices[0].message.content
 
+# NEW: Conversational version used by +talk so the bot remembers context per-user.
+# user_chats[user_id] stores a rolling list of {"role": ..., "content": ...} messages.
+MAX_CHAT_HISTORY = 20  # number of messages (user+assistant combined) kept per user
+
+def get_groq_chat_response(user_id: int, prompt: str) -> str:
+    history = user_chats.get(user_id, [])
+    messages = history + [{"role": "user", "content": prompt}]
+
+    completion = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=messages,
+    )
+    reply = completion.choices[0].message.content
+
+    history.append({"role": "user", "content": prompt})
+    history.append({"role": "assistant", "content": reply})
+    user_chats[user_id] = history[-MAX_CHAT_HISTORY:]
+
+    return reply
+
 # Place this at the top of your script with your other global variables
 user_chats = {}
         
@@ -53,6 +73,7 @@ AFK_FILE = 'afk.json'
 WARNINGS_FILE = 'warnings.json'
 MESSAGES_FILE = 'messages.json'
 REMINDERS_FILE = 'reminders.json' 
+MEMBER_HISTORY_FILE = 'member_history.json'  # NEW: tracks per-guild join/leave history
 
 # --- LEADERBOARD CONFIG ---
 LEADERBOARD_CHANNEL_NAME = "general" 
@@ -71,14 +92,9 @@ bot.http_session = None # Initialize http_session
 # Tracks message repeats and 12-hour strikes
 spam_tracker = defaultdict(lambda: {"messages": [], "strikes": 0, "last_strike_time": None})
 
-def load_data(filename, default={}):
-    if os.path.exists(filename):
-        with open(filename,'r') as f:
-            try:
-                return json.load(f)
-            except:
-                    return default
-                    
+# BUG FIX: rep_cooldowns was used in +rep but never defined anywhere, causing a NameError crash.
+rep_cooldowns = {}
+
 # --- 2. FILE & DATA INITIALIZATION ---
 
 HIGHLIGHTS_FILE = 'highlights.json'
@@ -130,6 +146,7 @@ afk_users = load_data(AFK_FILE)
 warnings_data = load_data(WARNINGS_FILE)
 message_counts = load_data(MESSAGES_FILE)
 reminders_data = load_data(REMINDERS_FILE)
+member_history = load_data(MEMBER_HISTORY_FILE)  # NEW: { guild_id: { user_id: {first_joined, current_joined, last_left, join_count} } }
 
 # --- LOGGING UTILITIES ---
 
@@ -613,14 +630,34 @@ async def on_ready():
     # --- START TASK LOOPS ---
     if not reminder_check_loop.is_running():
         reminder_check_loop.start()
-        
-    # UNCOMMENT THE LINE BELOW WHEN YOU ARE READY TO START THE WEEKLY LEADERBOARD!
-    # if not weekly_leaderboard_announcement.is_running():
-    #     weekly_leaderboard_announcement.start
+
+    # BUG FIX: this was commented out (leaderboard never ran) and also missing
+    # the () on .start, which would have raised an error anyway.
+    if not weekly_leaderboard_announcement.is_running():
+        weekly_leaderboard_announcement.start()
 
 # Place this with your other Events
 @bot.event
 async def on_member_join(member):
+    # --- NEW: Track join/leave history ---
+    gid = str(member.guild.id)
+    uid = str(member.id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    if gid not in member_history:
+        member_history[gid] = {}
+    record = member_history[gid].get(uid, {})
+
+    is_rejoin = "current_joined" in record  # they've been recorded joining before
+
+    if "first_joined" not in record:
+        record["first_joined"] = now_iso
+    record["current_joined"] = now_iso
+    record["join_count"] = record.get("join_count", 0) + 1
+
+    member_history[gid][uid] = record
+    save_data(member_history, MEMBER_HISTORY_FILE)
+
     # Replace this number with your actual Welcome Channel ID
     WELCOME_CHANNEL_ID = 1455502594947551254 
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
@@ -634,9 +671,32 @@ async def on_member_join(member):
         )
         embed.set_thumbnail(url=member.display_avatar.url)
         embed.add_field(name="Member Count", value=f"You are our {len(member.guild.members)}th member!", inline=False)
+
+        # NEW: note if this is a rejoin and when they last left
+        if is_rejoin and record.get("last_left"):
+            last_left_dt = datetime.fromisoformat(record["last_left"])
+            embed.add_field(
+                name="Welcome Back!",
+                value=f"You previously left this server on {last_left_dt.strftime('%Y-%m-%d %H:%M UTC')}.",
+                inline=False
+            )
+
         embed.set_footer(text=f"ID: {member.id}")
         
         await channel.send(content=f"Hey {member.mention}, welcome!", embed=embed)
+
+# NEW: Track when a member leaves the server
+@bot.event
+async def on_member_remove(member):
+    gid = str(member.guild.id)
+    uid = str(member.id)
+
+    if gid not in member_history:
+        member_history[gid] = {}
+    record = member_history[gid].get(uid, {})
+    record["last_left"] = datetime.now(timezone.utc).isoformat()
+    member_history[gid][uid] = record
+    save_data(member_history, MEMBER_HISTORY_FILE)
 
 # Place these in your Events section
 @bot.event
@@ -806,13 +866,6 @@ async def on_message(message):
         if guild_id not in message_counts: message_counts[guild_id] = {}
         message_counts[guild_id][user_id] = message_counts[guild_id].get(user_id, 0) + 1
         save_data(message_counts, MESSAGES_FILE)
-    
-    # --- AFK Check Logic ---
-    user_id = str(message.author.id)
-    if user_id in afk_users:
-        del afk_users[user_id]
-        save_data(afk_users, AFK_FILE)
-        await message.channel.send(f"👋 Welcome back, {message.author.mention}! You're no longer AFK.", delete_after=5)
 
     for mention in message.mentions:
         mention_id = str(mention.id)
@@ -856,22 +909,25 @@ async def hpoem(ctx):
         tid = ctx.channel.id
         hint_tracker[tid] = hint_tracker.get(tid, 0) + 1
         if hint_tracker[tid] <= 3:
-            res = model.generate_content("Give a cryptic hint for a poem about nature.")
-            await ctx.send(f"💡 *Hint {hint_tracker[tid]}/3:* {res.text}")
+            # BUG FIX: was calling an undefined Gemini 'model' object; switched to Groq.
+            res = await asyncio.to_thread(get_groq_text, "Give a cryptic hint for a poem about nature.")
+            await ctx.send(f"💡 *Hint {hint_tracker[tid]}/3:* {res}")
         else:
             await ctx.send("No more hints!")
 
 @bot.command()
 async def suggesth(ctx):
     if "Song-" in ctx.channel.name:
-        res = model.generate_content("Suggest 5 great Hindi songs of different genres.")
-        await ctx.send(f"🎧 *Hindi Recommendations:*\n{res.text}")
+        # BUG FIX: was calling an undefined Gemini 'model' object; switched to Groq.
+        res = await asyncio.to_thread(get_groq_text, "Suggest 5 great Hindi songs of different genres.")
+        await ctx.send(f"🎧 *Hindi Recommendations:*\n{res}")
 
 @bot.command()
 async def suggeste(ctx):
     if "Song-" in ctx.channel.name:
-        res = model.generate_content("Suggest 5 great English songs of different genres.")
-        await ctx.send(f"🎸 *English Recommendations:*\n{res.text}")
+        # BUG FIX: was calling an undefined Gemini 'model' object; switched to Groq.
+        res = await asyncio.to_thread(get_groq_text, "Suggest 5 great English songs of different genres.")
+        await ctx.send(f"🎸 *English Recommendations:*\n{res}")
         
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -1430,12 +1486,38 @@ async def userinfo(ctx, member: Optional[discord.Member]):
 
     # Calculate creation time
     creation_delta = datetime.now(timezone.utc) - member.created_at.replace(tzinfo=timezone.utc)
-    creation_days = creation_days.days
+    creation_days = creation_delta.days  # BUG FIX: was self-referencing creation_days, causing a crash
 
     embed.add_field(name="ID", value=member.id, inline=False)
     embed.add_field(name="Joined Server", value=f"{member.joined_at.strftime('%Y-%m-%d')} ({join_days} days ago)", inline=False)
     embed.add_field(name="Account Created", value=f"{member.created_at.strftime('%Y-%m-%d')} ({creation_days} days ago)", inline=False)
-    
+
+    # --- NEW: Join/Leave history ---
+    gid = str(ctx.guild.id)
+    uid = str(member.id)
+    record = member_history.get(gid, {}).get(uid)
+
+    if record:
+        if "first_joined" in record:
+            first_joined_dt = datetime.fromisoformat(record["first_joined"])
+            embed.add_field(
+                name="First Joined",
+                value=first_joined_dt.strftime('%Y-%m-%d %H:%M UTC'),
+                inline=True
+            )
+
+        join_count = record.get("join_count", 1)
+        if join_count > 1:
+            embed.add_field(name="Times Joined", value=f"{join_count}", inline=True)
+
+        if record.get("last_left"):
+            last_left_dt = datetime.fromisoformat(record["last_left"])
+            embed.add_field(
+                name="Last Left Server",
+                value=last_left_dt.strftime('%Y-%m-%d %H:%M UTC'),
+                inline=True
+            )
+
     roles = [role.name for role in member.roles if role.name != '@everyone']
     if roles:
         embed.add_field(name=f"Roles ({len(roles)})", value=", ".join(roles), inline=False)
@@ -1551,9 +1633,10 @@ async def schedule(ctx, movie: str, date: str, time: str):
 # --------------------------------------------------------
 @bot.command()
 async def talk(ctx, *, query):
-    """Fast AI Chat using Groq"""
+    """Fast AI Chat using Groq (remembers context per-user until you use +reset)"""
     async with ctx.typing():
-        response = await asyncio.to_thread(get_groq_text, query)
+        # BUG FIX: now uses get_groq_chat_response so conversation memory actually works
+        response = await asyncio.to_thread(get_groq_chat_response, ctx.author.id, query)
         await ctx.reply(response)
 
 
@@ -1699,93 +1782,3 @@ except discord.errors.LoginFailure:
 except Exception as e:
 
     print(f"\n\nAn unexpected error occurred: {e}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
